@@ -18,13 +18,21 @@ def naked_twins(values):
     Returns:
         the values dictionary with the naked twins eliminated from peers.
     """
-
     # Find all instances of naked twins
+    
     # Eliminate the naked twins as possibilities for their peers
+    k = values.keys()  # keys for the input dictionary
+    v = values.values()  # values of the input dictionary
+    solo_val = [box for box in values.keys() if len(values[box]) == 1]  #find all the boxes with single digit value
+    for box in solo_val:
+        num = values[box]
+        for peer in peers[box]:
+            values[peer] = values[peer].replace(num,'')
+    return values
 
 def cross(A, B):
     "Cross product of elements in A and elements in B."
-    pass
+    return [s+t for s in A for t in B]
 
 def grid_values(grid):
     """
@@ -36,7 +44,14 @@ def grid_values(grid):
             Keys: The boxes, e.g., 'A1'
             Values: The value in each box, e.g., '8'. If the box has no value, then the value will be '123456789'.
     """
-    pass
+    grid_new =[]
+    for s in grid:
+        if s == '.':
+            grid_new.append('123456789')
+        else:
+            grid_new.append(s)
+    assert len(grid_new) == 81
+    return dict(zip(boxes, grid_new))
 
 def display(values):
     """
@@ -44,19 +59,68 @@ def display(values):
     Args:
         values(dict): The sudoku in dictionary form
     """
-    pass
+    width = 1+max(len(values[s]) for s in boxes)
+    line = '+'.join(['-'*(width*3)]*3)
+    for r in rows:
+        print(''.join(values[r+c].center(width)+('|' if c in '36' else '')
+                      for c in cols))
+        if r in 'CF': print(line)
+    return
 
 def eliminate(values):
-    pass
+    k = values.keys()  # keys for the input dictionary
+    v = values.values()  # values of the input dictionary
+    solo_val = [box for box in values.keys() if len(values[box]) == 1]  #find all the boxes with single digit value
+    for box in solo_val:
+        num = values[box]
+        for peer in peers[box]:
+            values[peer] = values[peer].replace(num,'')
+    return values
+
 
 def only_choice(values):
-    pass
+    for unit in unitlist:
+        for digit in '123456789':
+            digit_places = [box for box in unit if digit in values[box]]   #Find the place of the digit in value[box] for a given digit
+            if len(digit_places) == 1:
+                values[digit_places[0]] = digit
+    return values
 
 def reduce_puzzle(values):
-    pass
+    stalled = False
+    while not stalled:
+        # Check how many boxes have a determined value
+        solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
+        
+        # Your code here: Use the Eliminate Strategy
+        values = eliminate(values)
+        # Your code here: Use the Only Choice Strategy
+        values = only_choice(values)
+        
+        # Check how many boxes have a determined value, to compare
+        solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
+        # If no new values were added, stop the loop.
+        stalled = solved_values_before == solved_values_after
+        # Sanity check, return False if there is a box with zero available values:
+        if len([box for box in values.keys() if len(values[box]) == 0]):
+            return False
+    return values
 
 def search(values):
-    pass
+    "Using depth-first search and propagation, create a search tree and solve the sudoku."
+    # First, reduce the puzzle using the previous function
+    values = reduce_puzzle(values)
+    if all(len(values[s]) == 1 for s in boxes):
+        return values ## Solved!
+    # Choose one of the unfilled squares with the fewest possibilities
+    n,s = min((len(values[s]), s) for s in boxes if len(values[s]) > 1)
+    # Now use recurrence to solve each one of the resulting sudokus, and
+    for value in values[s]:
+        new_sudoku = values.copy()
+        new_sudoku[s] = value
+        iteration = search(new_sudoku)
+        if iteration:
+            return iteration
 
 def solve(grid):
     """
